@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>GraphicSolution.lk - Invoice Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .items-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 40px;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: end;
+        }
+
+        .item-row input {
+            margin-bottom: 0;
+        }
+
+        .remove-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 42px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: background 0.3s;
+        }
+
+        .remove-btn:hover {
+            background: #ff3838;
+        }
+
+        .add-item-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .add-item-btn:hover {
+            background: #5568d3;
+        }
+
+        .generate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            max-width: 900px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: #ff4757;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        /* ========== FIXED: A4 SIZE FOR PDF ========== */
+        .invoice-preview {
+            background: white;
+            padding: 40px;
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+            max-width: 210mm;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+        }
+
+        /* Force A4 width for PDF capture on mobile */
+        @media print, screen {
+            .invoice-preview {
+                width: 210mm !important;
+                max-width: 210mm !important;
+                padding: 10mm !important;
+                box-sizing: border-box !important;
+            }
+        }
+
+        .invoice-header-section {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .invoice-header-section img {
+            max-width: 180px;
+            max-height: 70px;
+            margin-bottom: 10px;
+        }
+
+        .invoice-header-section h2 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 700;
+        }
+
+        .invoice-header-section .tagline {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .doc-type-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .invoice-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .info-box h3 {
+            color: #667eea;
+            font-size: 11px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-box p {
+            color: #333;
+            font-size: 13px;
+            margin: 4px 0;
+        }
+
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .invoice-table th {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .invoice-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .invoice-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .invoice-total-section {
+            text-align: right;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 3px solid #667eea;
+        }
+
+        .invoice-total {
+            font-size: 22px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .invoice-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px solid #e0e0e0;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .download-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.3s;
+        }
+
+        .download-btn:hover {
+            background: #5568d3;
+        }
+
+        .whatsapp-btn {
+            width: 100%;
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: background 0.3s;
+        }
+
+        .whatsapp-btn:hover {
+            background: #20BA5A;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 10px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 12px;
+            }
+
+            .form-section {
+                padding: 20px;
+            }
+
+            .item-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .item-row input {
+                width: 100%;
+            }
+
+            .remove-btn {
+                width: 100%;
+                height: 40px;
+            }
+
+            .invoice-info {
+                grid-template-columns: 1fr;
+            }
+
+            .invoice-preview {
+                padding: 20px 15px;
+            }
+
+            .invoice-header-section h2 {
+                font-size: 24px;
+            }
+
+            .invoice-header-section img {
+                max-width: 180px;
+                max-height: 80px;
+            }
+
+            .invoice-table {
+                font-size: 12px;
+            }
+
+            .invoice-table th,
+            .invoice-table td {
+                padding: 10px 8px;
+            }
+
+            .invoice-total {
+                font-size: 20px;
+            }
+
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                margin: 10px;
+                padding: 15px;
+            }
+
+            .doc-type-badge {
+                font-size: 12px;
+                padding: 6px 15px;
+            }
+
+            .payment-banks {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>GraphicSolution.lk</h1>
+            <p>Invoice & Quotation Generator</p>
+        </div>
+
+        <div class="form-section">
+            <div class="form-group">
+                <label for="docType">Document Type</label>
+                <select id="docType" onchange="toggleAdvancePayment()">
+                    <option value="invoice">Invoice</option>
+                    <option value="quotation">Quotation</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="docNumber">Document Number</label>
+                <input type="text" id="docNumber" placeholder="Enter INV-001 or QUO-001" required>
+            </div>
+
+            <div class="form-group">
+                <label for="customerName">Customer Name</label>
+                <input type="text" id="customerName" placeholder="Enter customer name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="customerPhone">Customer Phone</label>
+                <input type="text" id="customerPhone" placeholder="Enter phone number with country code">
+            </div>
+
+            <div class="form-group" id="advancePaymentGroup" style="display: none;">
+                <label for="advancePayment">Advance Payment (LKR)</label>
+                <input type="number" id="advancePayment" placeholder="Enter advance payment amount" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="form-group" id="discountGroup" style="display: none;">
+                <label for="discount">Discount (LKR)</label>
+                <input type="number" id="discount" placeholder="Enter discount amount" min="0" step="0.01" value="0">
+            </div>
+
+            <div class="form-group">
+                <label>Items</label>
+                <div class="items-section" id="itemsContainer">
+                    <div class="item-row">
+                        <input type="text" placeholder="Item description" class="item-desc">
+                        <input type="number" placeholder="Price" class="item-price" min="0" step="0.01">
+                        <input type="number" placeholder="Qty" class="item-qty" min="1" value="1">
+                        <button class="remove-btn" onclick="removeItem(this)">×</button>
+                    </div>
+                </div>
+                <button class="add-item-btn" onclick="addItem()">+ Add Item</button>
+            </div>
+
+            <button class="generate-btn" id="generateBtn" onclick="generateInvoice()">Generate Document</button>
+        </div>
+    </div>
+
+    <div class="modal" id="invoiceModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Document Preview</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div id="loadingDiv" class="loading" style="display:none;">Generating high-quality PDF...</div>
+            <div class="invoice-preview" id="invoicePreview"></div>
+            <div class="action-buttons">
+                <button class="download-btn" onclick="downloadPDF()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    Download PDF
+                </button>
+                <button class="download-btn" onclick="downloadImage()">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    Download Image
+                </button>
+            </div>
+            <button class="whatsapp-btn" onclick="shareToWhatsApp()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                Share to WhatsApp
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentDocData = null;
+        
+        const COMPANY_LOGO = "https://i.imgur.com/U2cXNWi.png";
+        const BANK_BOC_LOGO = "https://i.imgur.com/WJAz5L7.png";
+
+        function formatNumberWithCommas(number) {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function toggleAdvancePayment() {
+            const docType = document.getElementById('docType').value;
+            const advanceGroup = document.getElementById('advancePaymentGroup');
+            const discountGroup = document.getElementById('discountGroup');
+            
+            if (docType === 'invoice') {
+                advanceGroup.style.display = 'block';
+                discountGroup.style.display = 'block';
+            } else {
+                advanceGroup.style.display = 'none';
+                discountGroup.style.display = 'none';
+                document.getElementById('advancePayment').value = '0';
+                document.getElementById('discount').value = '0';
+            }
+        }
+
+        function addItem() {
+            const container = document.getElementById('itemsContainer');
+            const itemRow = document.createElement('div');
+            itemRow.className = 'item-row';
+            itemRow.innerHTML = `
+                <input type="text" placeholder="Item description" class="item-desc">
+                <input type="number" placeholder="Price" class="item-price" min="0" step="0.01">
+                <input type="number" placeholder="Qty" class="item-qty" min="1" value="1">
+                <button class="remove-btn" onclick="removeItem(this)">×</button>
+            `;
+            container.appendChild(itemRow);
+        }
+
+        function removeItem(btn) {
+            const container = document.getElementById('itemsContainer');
+            if (container.children.length > 1) {
+                btn.parentElement.remove();
+            } else {
+                alert('You must have at least one item');
+            }
+        }
+
+        function generateInvoice() {
+            const customerName = document.getElementById('customerName').value.trim();
+            const customerPhone = document.getElementById('customerPhone').value.trim();
+            const docType = document.getElementById('docType').value;
+            const docNumber = document.getElementById('docNumber').value.trim();
+            const advancePayment = parseFloat(document.getElementById('advancePayment').value) || 0;
+            const discount = parseFloat(document.getElementById('discount').value) || 0;
+            
+            if (!customerName) {
+                alert('Please enter customer name');
+                return;
+            }
+
+            if (!docNumber) {
+                alert('Please enter document number');
+                return;
+            }
+
+            const items = [];
+            const itemRows = document.querySelectorAll('.item-row');
+            
+            for (let row of itemRows) {
+                const desc = row.querySelector('.item-desc').value.trim();
+                const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                const qty = parseInt(row.querySelector('.item-qty').value) || 1;
+                
+                if (desc && price > 0) {
+                    items.push({ desc, price, qty, total: price * qty });
+                }
+            }
+
+            if (items.length === 0) {
+                alert('Please add at least one item with description and price');
+                return;
+            }
+
+            const total = items.reduce((sum, item) => sum + item.total, 0);
+            const docTitle = docType === 'invoice' ? 'INVOICE' : 'QUOTATION';
+            const date = new Date().toLocaleDateString('en-GB');
+            const totalAfterDiscount = total - discount;
+            const balanceDue = totalAfterDiscount - advancePayment;
+
+            currentDocData = {
+                customerName,
+                customerPhone,
+                docType,
+                docTitle,
+                docNumber,
+                date,
+                items,
+                total,
+                discount,
+                totalAfterDiscount,
+                advancePayment,
+                balanceDue
+            };
+
+            let invoiceHTML = `
+                <div class="invoice-header-section">
+                    <img src="${COMPANY_LOGO}" alt="GraphicSolution.lk Logo" style="max-width: 180px; max-height: 70px; object-fit: contain;" crossorigin="anonymous">
+                    <h2>GraphicSolution.lk</h2>
+                    <p class="tagline">Professional Graphic Design Services</p>
+                    <span class="doc-type-badge">${docTitle}</span>
+                </div>
+                <div class="invoice-info">
+                    <div class="info-box">
+                        <h3>Document Details</h3>
+                        <p><strong>${docTitle} #:</strong> ${docNumber}</p>
+                        <p><strong>Date:</strong> ${date}</p>
+                    </div>
+                    <div class="info-box">
+                        <h3>Customer Information</h3>
+                        <p><strong>Name:</strong> ${customerName}</p>
+                        ${customerPhone ? `<p><strong>Phone:</strong> ${customerPhone}</p>` : ''}
+                    </div>
+                </div>
+                <table class="invoice-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Price (LKR)</th>
+                            <th>Qty</th>
+                            <th>Total (LKR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            items.forEach((item, index) => {
+                invoiceHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${item.desc}</td>
+                        <td>${formatNumberWithCommas(item.price.toFixed(2))}</td>
+                        <td>${item.qty}</td>
+                        <td>${formatNumberWithCommas(item.total.toFixed(2))}</td>
+                    </tr>
+                `;
+            });
+
+            invoiceHTML += `
+                    </tbody>
+                </table>
+                <div class="invoice-total-section">
+                    <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
+                        <strong>Subtotal:</strong> LKR ${formatNumberWithCommas(total.toFixed(2))}
+                    </div>
+                    ${discount > 0 ? `
+                        <div style="font-size: 15px; margin-bottom: 8px; color: #e74c3c;">
+                            <strong>Discount:</strong> - LKR ${formatNumberWithCommas(discount.toFixed(2))}
+                        </div>
+                        <div style="height: 1px; background: #e0e0e0; margin: 10px 0;"></div>
+                        <div style="font-size: 16px; margin-bottom: 8px; color: #333;">
+                            <strong>Total After Discount:</strong> LKR ${formatNumberWithCommas(totalAfterDiscount.toFixed(2))}
+                        </div>
+                    ` : ''}
+                    ${advancePayment > 0 ? `
+                        <div style="font-size: 15px; margin-bottom: 8px; color: #27ae60;">
+                            <strong>Advance Payment:</strong> - LKR ${formatNumberWithCommas(advancePayment.toFixed(2))}
+                        </div>
+                        <div style="height: 2px; background: #e0e0e0; margin: 12px 0;"></div>
+                        <div class="invoice-total" style="color: ${balanceDue > 0 ? '#667eea' : '#27ae60'};">
+                            BALANCE DUE: LKR ${formatNumberWithCommas(balanceDue.toFixed(2))}
+                        </div>
+                    ` : `
+                        <div style="height: 2px; background: #e0e0e0; margin: 12px 0;"></div>
+                        <div class="invoice-total">
+                            ${discount > 0 ? 'TOTAL:' : 'TOTAL:'} LKR ${formatNumberWithCommas((discount > 0 ? totalAfterDiscount : total).toFixed(2))}
+                        </div>
+                    `}
+                </div>
+                <div class="invoice-footer">
+                    <p>Thank you for your business!</p>
+                    <p>Contact: info@graphicsolution.lk | www.graphicsolution.lk</p>
+                </div>
+                ${docType === 'quotation' ? `
+                <div style="margin-top: 20px; padding: 15px; background: #fff9e6; border-radius: 8px; border: 2px solid #f39c12; border-left: 4px solid #f39c12;">
+                    <h3 style="color: #f39c12; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center;">
+                        <span style="font-size: 16px; margin-right: 8px;">📋</span> Notes:
+                    </h3>
+                    <div style="color: #333; line-height: 1.6; font-size: 11px;">
+                        <p style="margin: 6px 0; display: flex; align-items: start;">
+                            <span style="color: #f39c12; margin-right: 6px; font-size: 12px;">✦</span>
+                            <span>50% advance payment is required before starting the project.</span>
+                        </p>
+                        <p style="margin: 6px 0; display: flex; align-items: start;">
+                            <span style="color: #f39c12; margin-right: 6px; font-size: 12px;">✦</span>
+                            <span>The remaining 50% balance must be paid before final delivery.</span>
+                        </p>
+                        <p style="margin: 6px 0; display: flex; align-items: start;">
+                            <span style="color: #f39c12; margin-right: 6px; font-size: 12px;">✦</span>
+                            <span>Delivery: All work will be completed within 3-4 days in PDF, SVG, PNG, JPG, Mockup, and AI formats.</span>
+                        </p>
+                        <p style="margin: 6px 0; display: flex; align-items: start;">
+                            <span style="color: #f39c12; margin-right: 6px; font-size: 12px;">✦</span>
+                            <span>As per the original quotation, two free revisions were included. Four revisions have already been provided as a courtesy. The 5th revision will be charged at 40% of the total project value, and subsequent revisions at 20% each.</span>
+                        </p>
+                    </div>
+                </div>
+                ` : ''}
+                <div style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 10px; border: 2px solid #e0e0e0;">
+                    <h3 style="text-align: center; color: #667eea; font-size: 16px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px;">Payment Info:</h3>
+                    <div style="display: flex; justify-content: flex-start; gap: 15px;" class="payment-banks">
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 3px solid #0066cc; min-width: 200px;">
+                            <div style="text-align: left; margin-bottom: 10px;">
+                                <img src="${BANK_BOC_LOGO}" alt="BOC Bank" style="max-width: 140px; max-height: 45px; width: auto; height: auto; object-fit: contain;" crossorigin="anonymous">
+                            </div>
+                            <p style="margin: 5px 0; color: #333; text-align: left; font-size: 11px;"><strong>Account #:</strong> 7607413</p>
+                            <p style="margin: 5px 0; color: #333; text-align: left; font-size: 11px;"><strong>A/C Name:</strong> W.K.N. MADUSHAN</p>
+                            <p style="margin: 5px 0; color: #333; text-align: left; font-size: 11px;"><strong>Bank:</strong> BOC Bank (Thawalama)</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('invoicePreview').innerHTML = invoiceHTML;
+            document.getElementById('invoiceModal').style.display = 'block';
+        }
+
+        // ========== FIXED PDF DOWNLOAD FUNCTION - A4 SIZE ==========
+        async function downloadPDF() {
+            const element = document.getElementById('invoicePreview');
+            const loadingDiv = document.getElementById('loadingDiv');
+            
+            try {
+                loadingDiv.style.display = 'block';
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Force A4 width for accurate capture
+                const originalWidth = element.style.width;
+                element.style.width = '210mm';
+                
+                const canvas = await html2canvas(element, {
+                    scale: 2.5,
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 800,
+                    windowHeight: element.scrollHeight,
+                    onclone: (clonedDoc, element) => {
+                        const images = clonedDoc.querySelectorAll('img');
+                        images.forEach(img => {
+                            if (img.complete === false) {
+                                img.style.display = 'block';
+                            }
+                        });
+                    }
+                });
+                
+                element.style.width = originalWidth;
+                
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                
+                if (typeof window.jspdf === 'undefined') {
+                    alert('PDF library not loaded.');
+                    loadingDiv.style.display = 'none';
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                
+                // Create A4 PDF
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4',
+                    compress: true
+                });
+                
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pdfWidth;
+                const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+                
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+                heightLeft -= pdfHeight;
+                
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight, '', 'FAST');
+                    heightLeft -= pdfHeight;
+                }
+                
+                const filename = `${currentDocData.docTitle}_${currentDocData.docNumber}.pdf`;
+                pdf.save(filename);
+                
+                loadingDiv.style.display = 'none';
+                
+            } catch (error) {
+                console.error('PDF Error:', error);
+                loadingDiv.style.display = 'none';
+                alert('PDF download failed. Error: ' + error.message);
+            }
+        }
+
+        async function downloadImage() {
+            const element = document.getElementById('invoicePreview');
+            const loadingDiv = document.getElementById('loadingDiv');
+            
+            try {
+                loadingDiv.style.display = 'block';
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const originalBg = element.style.backgroundColor;
+                element.style.backgroundColor = '#ffffff';
+                
+                const canvas = await html2canvas(element, {
+                    scale: 3,
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 15000,
+                    scrollY: -window.scrollY,
+                    scrollX: -window.scrollX
+                });
+                
+                element.style.backgroundColor = originalBg;
+                
+                canvas.toBlob(function(blob) {
+                    if (!blob) {
+                        alert('Failed to generate image. Please try again.');
+                        loadingDiv.style.display = 'none';
+                        return;
+                    }
+                    
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${currentDocData.docTitle}_${currentDocData.docNumber}.png`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    loadingDiv.style.display = 'none';
+                    alert('Image downloaded successfully!');
+                }, 'image/png', 1.0);
+                
+            } catch (error) {
+                console.error('Image Error:', error);
+                loadingDiv.style.display = 'none';
+                alert('Image download failed. Error: ' + error.message);
+            }
+        }
+
+        async function shareToWhatsApp() {
+            const phone = currentDocData.customerPhone;
+            const element = document.getElementById('invoicePreview');
+            
+            try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: false,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    imageTimeout: 15000,
+                    scrollY: -window.scrollY,
+                    scrollX: -window.scrollX
+                });
+                
+                canvas.toBlob(async function(blob) {
+                    if (!blob) {
+                        fallbackWhatsAppShare(phone);
+                        return;
+                    }
+                    
+                    if (navigator.share && navigator.canShare) {
+                        const file = new File([blob], `${currentDocData.docTitle}_${currentDocData.docNumber}.png`, { 
+                            type: 'image/png' 
+                        });
+                        
+                        if (navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    files: [file],
+                                    title: `${currentDocData.docTitle} - ${currentDocData.docNumber}`,
+                                    text: `${currentDocData.docTitle} from GraphicSolution.lk`
+                                });
+                                return;
+                            } catch (shareError) {
+                                if (shareError.name === 'AbortError') {
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    
+                    downloadImageForWhatsApp(blob, phone);
+                    
+                }, 'image/png', 1.0);
+                
+            } catch (error) {
+                console.error('Error generating image:', error);
+                fallbackWhatsAppShare(phone);
+            }
+        }
+        
+        function downloadImageForWhatsApp(blob, phone) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${currentDocData.docTitle}_${currentDocData.docNumber}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            setTimeout(() => {
+                const proceed = confirm('Image downloaded! Click OK to open WhatsApp.\n\nYou can then attach the downloaded image from your gallery/downloads.');
+                
+                if (proceed) {
+                    let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n`;
+                    message += `${currentDocData.docTitle} #${currentDocData.docNumber}\n`;
+                    message += `Customer: ${currentDocData.customerName}\n`;
+                    message += `Total: LKR ${formatNumberWithCommas((currentDocData.discount > 0 ? currentDocData.totalAfterDiscount : currentDocData.total).toFixed(2))}\n\n`;
+                    message += `Please check the attached image for full details.\n\n`;
+                    message += `Thank you for your business!\nGraphicSolution.lk`;
+                    
+                    const encodedMessage = encodeURIComponent(message);
+                    const whatsappURL = phone 
+                        ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`
+                        : `https://wa.me/?text=${encodedMessage}`;
+                    
+                    window.open(whatsappURL, '_blank');
+                }
+            }, 500);
+        }
+
+        function fallbackWhatsAppShare(phone) {
+            let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            message += `📄 *${currentDocData.docTitle} #:* ${currentDocData.docNumber}\n`;
+            message += `📅 *Date:* ${currentDocData.date}\n`;
+            message += `👤 *Customer:* ${currentDocData.customerName}\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            message += `📋 *ITEMS:*\n\n`;
+
+            currentDocData.items.forEach((item, index) => {
+                message += `${index + 1}. *${item.desc}*\n`;
+                message += `   💰 LKR ${formatNumberWithCommas(item.price.toFixed(2))} × ${item.qty} = *LKR ${formatNumberWithCommas(item.total.toFixed(2))}*\n\n`;
+            });
+
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            message += `📊 *Subtotal:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
+            
+            if (currentDocData.discount > 0) {
+                message += `🎁 *Discount:* - LKR ${formatNumberWithCommas(currentDocData.discount.toFixed(2))}\n`;
+                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                message += `💵 *Total After Discount:* LKR ${formatNumberWithCommas(currentDocData.totalAfterDiscount.toFixed(2))}\n`;
+            }
+            
+            if (currentDocData.advancePayment > 0) {
+                message += `✅ *Advance Paid:* - LKR ${formatNumberWithCommas(currentDocData.advancePayment.toFixed(2))}\n`;
+                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                message += `💵 *BALANCE DUE:* LKR ${formatNumberWithCommas(currentDocData.balanceDue.toFixed(2))}\n`;
+            } else if (currentDocData.discount > 0) {
+                // Only discount, no advance
+            } else {
+                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                message += `💵 *TOTAL AMOUNT:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
+            }
+            
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+            message += `🏦 *PAYMENT OPTIONS:*\n\n`;
+            message += `*BOC Bank:*\n`;
+            message += `A/C: 7607413\n`;
+            message += `Name: W.K.N. MADUSHAN\n`;
+            message += `Branch: Thawalama\n\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            message += `✨ Thank you for your business!\n\n`;
+            message += `📧 info@graphicsolution.lk\n`;
+            message += `🌐 www.graphicsolution.lk`;
+
+            const encodedMessage = encodeURIComponent(message);
+            const whatsappURL = phone 
+                ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`
+                : `https://wa.me/?text=${encodedMessage}`;
+
+            window.open(whatsappURL, '_blank');
+        }
+
+        function closeModal() {
+            document.getElementById('invoiceModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('invoiceModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
