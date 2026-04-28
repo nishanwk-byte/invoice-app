@@ -1,10 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>GraphicSolution.lk - Invoice Generator</title>
+    
+    <!-- ========== PWA / APP CONFIGURATION (Mobile App Settings) ========== -->
+    <link rel="manifest" crossorigin="use-credentials" href="data:application/manifest+json,{
+      \"name\": \"GraphicSolution Invoice\",
+      \"short_name\": \"GS Invoice\",
+      \"description\": \"Professional Invoice Generator for GraphicSolution.lk\",
+      \"start_url\": \"/invoice-app/\",
+      \"display\": \"standalone\",
+      \"theme_color\": \"#667eea\",
+      \"background_color\": \"#667eea\",
+      \"orientation\": \"portrait\",
+      \"icons\": [
+        {
+          \"src\": \"https://i.imgur.com/U2cXNWi.png\",
+          \"sizes\": \"192x192\",
+          \"type\": \"image/png\",
+          \"purpose\": \"any maskable\"
+        },
+        {
+          \"src\": \"https://i.imgur.com/U2cXNWi.png\",
+          \"sizes\": \"512x512\",
+          \"type\": \"image/png\",
+          \"purpose\": \"any maskable\"
+        }
+      ]
+    }">
+    
+    <!-- App Icons for different platforms -->
+    <link rel="apple-touch-icon" href="https://i.imgur.com/U2cXNWi.png">
+    <link rel="icon" type="image/png" href="https://i.imgur.com/U2cXNWi.png">
+    
+    <!-- App display settings -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="GS Invoice">
+    <meta name="mobile-web-app-capable" content="yes">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -195,7 +232,6 @@
             font-size: 20px;
         }
 
-        /* ========== FIXED: A4 SIZE FOR PDF ========== */
         .invoice-preview {
             background: white;
             padding: 40px;
@@ -208,7 +244,6 @@
             box-sizing: border-box;
         }
 
-        /* Force A4 width for PDF capture on mobile */
         @media print, screen {
             .invoice-preview {
                 width: 210mm !important;
@@ -489,7 +524,7 @@
 
             <div class="form-group">
                 <label for="docNumber">Document Number</label>
-                <input type="text" id="docNumber" placeholder="Enter INV-001 or QUO-001" required>
+                <input type="text" id="docNumber" placeholder="INV-001 or QUO-001" required>
             </div>
 
             <div class="form-group">
@@ -525,7 +560,7 @@
                 <button class="add-item-btn" onclick="addItem()">+ Add Item</button>
             </div>
 
-            <button class="generate-btn" id="generateBtn" onclick="generateInvoice()">Generate Document</button>
+            <button class="generate-btn" onclick="generateInvoice()">Generate Document</button>
         </div>
     </div>
 
@@ -792,17 +827,14 @@
             document.getElementById('invoiceModal').style.display = 'block';
         }
 
-        // ========== FIXED PDF DOWNLOAD FUNCTION - A4 SIZE ==========
         async function downloadPDF() {
             const element = document.getElementById('invoicePreview');
             const loadingDiv = document.getElementById('loadingDiv');
             
             try {
                 loadingDiv.style.display = 'block';
-                
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
-                // Force A4 width for accurate capture
                 const originalWidth = element.style.width;
                 element.style.width = '210mm';
                 
@@ -813,15 +845,7 @@
                     logging: false,
                     backgroundColor: '#ffffff',
                     windowWidth: 800,
-                    windowHeight: element.scrollHeight,
-                    onclone: (clonedDoc, element) => {
-                        const images = clonedDoc.querySelectorAll('img');
-                        images.forEach(img => {
-                            if (img.complete === false) {
-                                img.style.display = 'block';
-                            }
-                        });
-                    }
+                    windowHeight: element.scrollHeight
                 });
                 
                 element.style.width = originalWidth;
@@ -835,14 +859,7 @@
                 }
                 
                 const { jsPDF } = window.jspdf;
-                
-                // Create A4 PDF
-                const pdf = new jsPDF({
-                    orientation: 'portrait',
-                    unit: 'mm',
-                    format: 'a4',
-                    compress: true
-                });
+                const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
                 
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -862,9 +879,7 @@
                     heightLeft -= pdfHeight;
                 }
                 
-                const filename = `${currentDocData.docTitle}_${currentDocData.docNumber}.pdf`;
-                pdf.save(filename);
-                
+                pdf.save(`${currentDocData.docTitle}_${currentDocData.docNumber}.pdf`);
                 loadingDiv.style.display = 'none';
                 
             } catch (error) {
@@ -880,7 +895,6 @@
             
             try {
                 loadingDiv.style.display = 'block';
-                
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
                 const originalBg = element.style.backgroundColor;
@@ -892,20 +906,17 @@
                     allowTaint: false,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    imageTimeout: 15000,
-                    scrollY: -window.scrollY,
-                    scrollX: -window.scrollX
+                    imageTimeout: 15000
                 });
                 
                 element.style.backgroundColor = originalBg;
                 
                 canvas.toBlob(function(blob) {
                     if (!blob) {
-                        alert('Failed to generate image. Please try again.');
+                        alert('Failed to generate image.');
                         loadingDiv.style.display = 'none';
                         return;
                     }
-                    
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -931,16 +942,12 @@
             
             try {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                
                 const canvas = await html2canvas(element, {
                     scale: 2,
                     useCORS: true,
                     allowTaint: false,
                     logging: false,
-                    backgroundColor: '#ffffff',
-                    imageTimeout: 15000,
-                    scrollY: -window.scrollY,
-                    scrollX: -window.scrollX
+                    backgroundColor: '#ffffff'
                 });
                 
                 canvas.toBlob(async function(blob) {
@@ -949,29 +956,20 @@
                         return;
                     }
                     
-                    if (navigator.share && navigator.canShare) {
-                        const file = new File([blob], `${currentDocData.docTitle}_${currentDocData.docNumber}.png`, { 
-                            type: 'image/png' 
-                        });
-                        
-                        if (navigator.canShare({ files: [file] })) {
-                            try {
-                                await navigator.share({
-                                    files: [file],
-                                    title: `${currentDocData.docTitle} - ${currentDocData.docNumber}`,
-                                    text: `${currentDocData.docTitle} from GraphicSolution.lk`
-                                });
-                                return;
-                            } catch (shareError) {
-                                if (shareError.name === 'AbortError') {
-                                    return;
-                                }
-                            }
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'image.png')] })) {
+                        try {
+                            await navigator.share({
+                                files: [new File([blob], `${currentDocData.docTitle}_${currentDocData.docNumber}.png`, { type: 'image/png' })],
+                                title: `${currentDocData.docTitle} - ${currentDocData.docNumber}`,
+                                text: `${currentDocData.docTitle} from GraphicSolution.lk`
+                            });
+                            return;
+                        } catch (shareError) {
+                            if (shareError.name === 'AbortError') return;
                         }
                     }
                     
                     downloadImageForWhatsApp(blob, phone);
-                    
                 }, 'image/png', 1.0);
                 
             } catch (error) {
@@ -991,76 +989,31 @@
             URL.revokeObjectURL(url);
             
             setTimeout(() => {
-                const proceed = confirm('Image downloaded! Click OK to open WhatsApp.\n\nYou can then attach the downloaded image from your gallery/downloads.');
-                
+                const proceed = confirm('Image downloaded! Click OK to open WhatsApp to send it.');
                 if (proceed) {
-                    let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n`;
-                    message += `${currentDocData.docTitle} #${currentDocData.docNumber}\n`;
-                    message += `Customer: ${currentDocData.customerName}\n`;
-                    message += `Total: LKR ${formatNumberWithCommas((currentDocData.discount > 0 ? currentDocData.totalAfterDiscount : currentDocData.total).toFixed(2))}\n\n`;
-                    message += `Please check the attached image for full details.\n\n`;
-                    message += `Thank you for your business!\nGraphicSolution.lk`;
-                    
+                    let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n${currentDocData.docTitle} #${currentDocData.docNumber}\nCustomer: ${currentDocData.customerName}\nTotal: LKR ${formatNumberWithCommas((currentDocData.discount > 0 ? currentDocData.totalAfterDiscount : currentDocData.total).toFixed(2))}\n\nPlease check the attached image.\n\nThank you!`;
                     const encodedMessage = encodeURIComponent(message);
-                    const whatsappURL = phone 
-                        ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`
-                        : `https://wa.me/?text=${encodedMessage}`;
-                    
+                    const whatsappURL = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}` : `https://wa.me/?text=${encodedMessage}`;
                     window.open(whatsappURL, '_blank');
                 }
             }, 500);
         }
 
         function fallbackWhatsAppShare(phone) {
-            let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `📄 *${currentDocData.docTitle} #:* ${currentDocData.docNumber}\n`;
-            message += `📅 *Date:* ${currentDocData.date}\n`;
-            message += `👤 *Customer:* ${currentDocData.customerName}\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            message += `📋 *ITEMS:*\n\n`;
-
+            let message = `*${currentDocData.docTitle} - GraphicSolution.lk*\n\n━━━━━━━━━━━━━━━━━━━━━━━\n📄 *${currentDocData.docTitle} #:* ${currentDocData.docNumber}\n📅 *Date:* ${currentDocData.date}\n👤 *Customer:* ${currentDocData.customerName}\n━━━━━━━━━━━━━━━━━━━━━━━\n\n📋 *ITEMS:*\n\n`;
             currentDocData.items.forEach((item, index) => {
-                message += `${index + 1}. *${item.desc}*\n`;
-                message += `   💰 LKR ${formatNumberWithCommas(item.price.toFixed(2))} × ${item.qty} = *LKR ${formatNumberWithCommas(item.total.toFixed(2))}*\n\n`;
+                message += `${index + 1}. *${item.desc}*\n   💰 LKR ${formatNumberWithCommas(item.price.toFixed(2))} × ${item.qty} = *LKR ${formatNumberWithCommas(item.total.toFixed(2))}*\n\n`;
             });
-
-            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `📊 *Subtotal:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
-            
-            if (currentDocData.discount > 0) {
-                message += `🎁 *Discount:* - LKR ${formatNumberWithCommas(currentDocData.discount.toFixed(2))}\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💵 *Total After Discount:* LKR ${formatNumberWithCommas(currentDocData.totalAfterDiscount.toFixed(2))}\n`;
-            }
-            
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n📊 *Subtotal:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
+            if (currentDocData.discount > 0) message += `🎁 *Discount:* - LKR ${formatNumberWithCommas(currentDocData.discount.toFixed(2))}\n━━━━━━━━━━━━━━━━━━━━━━━\n💵 *Total After Discount:* LKR ${formatNumberWithCommas(currentDocData.totalAfterDiscount.toFixed(2))}\n`;
             if (currentDocData.advancePayment > 0) {
-                message += `✅ *Advance Paid:* - LKR ${formatNumberWithCommas(currentDocData.advancePayment.toFixed(2))}\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💵 *BALANCE DUE:* LKR ${formatNumberWithCommas(currentDocData.balanceDue.toFixed(2))}\n`;
-            } else if (currentDocData.discount > 0) {
-                // Only discount, no advance
-            } else {
-                message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💵 *TOTAL AMOUNT:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
+                message += `✅ *Advance Paid:* - LKR ${formatNumberWithCommas(currentDocData.advancePayment.toFixed(2))}\n━━━━━━━━━━━━━━━━━━━━━━━\n💵 *BALANCE DUE:* LKR ${formatNumberWithCommas(currentDocData.balanceDue.toFixed(2))}\n`;
+            } else if (!currentDocData.discount) {
+                message += `━━━━━━━━━━━━━━━━━━━━━━━\n💵 *TOTAL AMOUNT:* LKR ${formatNumberWithCommas(currentDocData.total.toFixed(2))}\n`;
             }
-            
-            message += `━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-            message += `🏦 *PAYMENT OPTIONS:*\n\n`;
-            message += `*BOC Bank:*\n`;
-            message += `A/C: 7607413\n`;
-            message += `Name: W.K.N. MADUSHAN\n`;
-            message += `Branch: Thawalama\n\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `✨ Thank you for your business!\n\n`;
-            message += `📧 info@graphicsolution.lk\n`;
-            message += `🌐 www.graphicsolution.lk`;
-
+            message += `━━━━━━━━━━━━━━━━━━━━━━━\n\n🏦 *PAYMENT OPTIONS:*\n\n*BOC Bank:*\nA/C: 7607413\nName: W.K.N. MADUSHAN\nBranch: Thawalama\n\n━━━━━━━━━━━━━━━━━━━━━━━\n✨ Thank you for your business!\n\n📧 info@graphicsolution.lk\n🌐 www.graphicsolution.lk`;
             const encodedMessage = encodeURIComponent(message);
-            const whatsappURL = phone 
-                ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}`
-                : `https://wa.me/?text=${encodedMessage}`;
-
+            const whatsappURL = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMessage}` : `https://wa.me/?text=${encodedMessage}`;
             window.open(whatsappURL, '_blank');
         }
 
@@ -1070,9 +1023,7 @@
 
         window.onclick = function(event) {
             const modal = document.getElementById('invoiceModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+            if (event.target === modal) closeModal();
         }
     </script>
 </body>
