@@ -3,7 +3,7 @@
 <head>
 	
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>GraphicSolution.lk - Invoice Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -195,14 +195,27 @@
             font-size: 20px;
         }
 
+        /* ========== FIXED: A4 SIZE FOR PDF ========== */
         .invoice-preview {
             background: white;
             padding: 40px;
             border: 1px solid #ddd;
             margin-bottom: 20px;
             max-width: 210mm;
+            width: 100%;
             margin-left: auto;
             margin-right: auto;
+            box-sizing: border-box;
+        }
+
+        /* Force A4 width for PDF capture on mobile */
+        @media print, screen {
+            .invoice-preview {
+                width: 210mm !important;
+                max-width: 210mm !important;
+                padding: 10mm !important;
+                box-sizing: border-box !important;
+            }
         }
 
         .invoice-header-section {
@@ -375,18 +388,6 @@
             font-weight: 600;
         }
 
-        .doc-number-display {
-            background: #f0f4ff;
-            padding: 12px;
-            border-radius: 8px;
-            border: 2px solid #667eea;
-            text-align: center;
-            font-size: 18px;
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
         @media (max-width: 768px) {
             .container {
                 border-radius: 10px;
@@ -463,13 +464,9 @@
                 padding: 6px 15px;
             }
 
-            /* Bank payment section mobile responsive */
-            .invoice-preview div[style*="grid-template-columns: 1fr 1fr"] {
-                display: block !important;
-            }
-
-            .invoice-preview div[style*="grid-template-columns: 1fr 1fr"] > div {
-                margin-bottom: 15px;
+            .payment-banks {
+                flex-direction: column !important;
+                align-items: flex-start !important;
             }
         }
     </style>
@@ -570,13 +567,9 @@
     <script>
         let currentDocData = null;
         
-        // NEW LOGO 1 - Your GraphicSolution main logo (from Imgur)
         const COMPANY_LOGO = "https://i.imgur.com/U2cXNWi.png";
-        
-        // NEW LOGO 2 - Your BOC Bank logo (from Imgur)
         const BANK_BOC_LOGO = "https://i.imgur.com/WJAz5L7.png";
 
-        // Helper function to format numbers with commas (e.g., 10000 -> 10,000)
         function formatNumberWithCommas(number) {
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
@@ -792,14 +785,6 @@
                             <p style="margin: 5px 0; color: #333; text-align: left; font-size: 11px;"><strong>Bank:</strong> BOC Bank (Thawalama)</p>
                         </div>
                     </div>
-                    <style>
-                        @media (max-width: 768px) {
-                            .payment-banks {
-                                flex-direction: column !important;
-                                align-items: flex-start !important;
-                            }
-                        }
-                    </style>
                 </div>
             `;
 
@@ -807,6 +792,7 @@
             document.getElementById('invoiceModal').style.display = 'block';
         }
 
+        // ========== FIXED PDF DOWNLOAD FUNCTION - A4 SIZE ==========
         async function downloadPDF() {
             const element = document.getElementById('invoicePreview');
             const loadingDiv = document.getElementById('loadingDiv');
@@ -814,16 +800,20 @@
             try {
                 loadingDiv.style.display = 'block';
                 
-                // Wait a bit for cross-origin images to load
                 await new Promise(resolve => setTimeout(resolve, 500));
                 
+                // Force A4 width for accurate capture
+                const originalWidth = element.style.width;
+                element.style.width = '210mm';
+                
                 const canvas = await html2canvas(element, {
-                    scale: 3,
+                    scale: 2.5,
                     useCORS: true,
                     allowTaint: false,
                     logging: false,
                     backgroundColor: '#ffffff',
-                    imageTimeout: 15000,
+                    windowWidth: 800,
+                    windowHeight: element.scrollHeight,
                     onclone: (clonedDoc, element) => {
                         const images = clonedDoc.querySelectorAll('img');
                         images.forEach(img => {
@@ -834,16 +824,19 @@
                     }
                 });
                 
+                element.style.width = originalWidth;
+                
                 const imgData = canvas.toDataURL('image/jpeg', 1.0);
                 
                 if (typeof window.jspdf === 'undefined') {
-                    alert('PDF library not loaded. Please refresh the page and try again.');
+                    alert('PDF library not loaded.');
                     loadingDiv.style.display = 'none';
                     return;
                 }
                 
                 const { jsPDF } = window.jspdf;
                 
+                // Create A4 PDF
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
@@ -877,7 +870,7 @@
             } catch (error) {
                 console.error('PDF Error:', error);
                 loadingDiv.style.display = 'none';
-                alert('PDF download failed. Error: ' + error.message + '\n\nTip: Try downloading as Image instead, or check your internet connection for images to load.');
+                alert('PDF download failed. Error: ' + error.message);
             }
         }
 
@@ -973,7 +966,6 @@
                                 if (shareError.name === 'AbortError') {
                                     return;
                                 }
-                                console.log('Share failed, trying download method');
                             }
                         }
                     }
